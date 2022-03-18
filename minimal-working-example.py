@@ -29,7 +29,7 @@ def fetch_timetable(planner_url):
                      headers={'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'},
                      timeout=15)
 
-    #for each room, find all seats and put them in the `seats` list
+    # for each room, find all seats and put them in the `seats` list
     get_text = r.text
     soup = BeautifulSoup(get_text, "html.parser")
     seats = soup.findAll("span", {"class": "subheader"})
@@ -37,17 +37,17 @@ def fetch_timetable(planner_url):
     seats = [re.search('<span class="subheader">(.*)</span>', str(i)).group(1) for i in seats]
     seats = [i.replace("<br/>", "") for i in seats]
 
-    #read the timetable and create a DataFrame
+    # read the timetable and create a DataFrame
     df = pd.read_html(r.content)[0]
-    #delete rows with all NaN
+    # delete rows with all NaN
     df.dropna(how='all', inplace=True)
-    #delete rows for which the last column ('Unnamed: 23') is empty
+    # delete rows for which the last column ('Unnamed: 23') is empty
     df = df[pd.notnull(df['Unnamed: 23'])]
-    #reindex the DataFrame: it now contains only all rooms and classes
+    # reindex the DataFrame: it now contains only all rooms and classes
     df.reset_index(drop=True, inplace=True)
-    #drop the last column
+    # drop the last column
     df.drop(df.columns[len(df.columns)-1], axis=1, inplace=True)
-    #rename the first column 'Aula'
+    # rename the first column 'Aula'
     df.rename(columns={'Unnamed: 0':'Aula'}, inplace=True)
 
     #fix classrooms names' removing the seats
@@ -60,8 +60,8 @@ def fetch_timetable(planner_url):
     fixed_aule = pd.Series(new_aule)
     df['Aula'] = fixed_aule
     
-    #change the column names from str to datetime.time
-    #NOTE: the column name refers to the END time of the half-hour timeslot
+    # change the column names from str to datetime.time
+    # NOTE: the column name refers to the END time of the half-hour timeslot
     df.set_index('Aula', inplace=True)
 
     for col in df.columns:
@@ -70,7 +70,7 @@ def fetch_timetable(planner_url):
     df.columns = pd.to_timedelta(df.columns+':00')
     df.reset_index()
 
-    #export the DataFrame to csv
+    # export the DataFrame to csv
     df.to_csv("rizzi.csv")
 
     print("Done.")
@@ -106,7 +106,7 @@ def empty_rooms(df, time, span=0):
         return available_classrooms
 
     time_frame = False
-    #find the correct time slot
+    # find the correct time slot
     for col in df2.columns:
         if col != 'Aula':
             table_time = datetime.datetime.strptime(col[-8:], '%H:%M:%S').time()
@@ -117,7 +117,7 @@ def empty_rooms(df, time, span=0):
     if time_frame == False:  # time is during closing hours
         return available_classrooms
     else:
-        #drop not null rows, e.g.: not available classrooms
+        # drop not null rows, e.g.: not available classrooms
         df2.set_index('Aula', inplace=True)
         starting_index = df2.columns.get_loc(time_frame)
         ending_index = starting_index+(2*span)+1
